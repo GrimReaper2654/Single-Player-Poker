@@ -6,7 +6,176 @@ window.onload = function () {
         lineNumbers: true,
         theme: "default"
     });
+
+    // Read-only snippet of the Card class
+    let readOnlyCode = `// --- Card Class (Read-Only) ---
+class Card {
+    constructor(card, suit) {
+        this.suit = suit;
+        this.card = card;
+        this.isRed = (suit === "hearts" || suit === "diamonds");
+        this.isPicture = ["J", "Q", "K", "A"].includes(card);
+    }
+    getValue() {
+        if (["J", "Q", "K"].includes(this.card)) return 11 + ["J", "Q", "K"].indexOf(this.card);
+        if (this.card === "A") return 14;
+        return parseInt(this.card);
+    }
+}
+    
+// Your function goes below (Editable)
+function wantCard(myCards, dealerCards) {`;
+    
+    // Load saved function from localStorage
+    const savedFunction = localStorage.getItem("SinglePlayerPokerPlayerFunction");
+    let userFunctionTemplate = savedFunction ? savedFunction : `
+    let wanted = [];
+
+    // Return an array of cards that you want to pick up
+    // 'DECK' is an array of all cards in a deck (excluding jokers)
+    // 'myCards' and 'dealerCards' are arrays of cards
+    // A basic strategy is implemented below as an example
+    
+    // Flush Rush™ (35% winrate)
+    if (myCards.length === 0) {
+        return DECK;
+    } else {
+        return DECK.filter(c => c.suit === myCards[0].suit);
+    }
+    return wanted;`;
+    
+    // Read-only closing bracket
+    let readOnlyCodeEnd = `
+}`;
+    
+    // Set editor content
+    let fullCode = readOnlyCode + userFunctionTemplate + readOnlyCodeEnd;
+    editor.setValue(fullCode);
+
+
+    // ** Lock Read-Only Sections Dynamically **
+    let readOnlyStartLine = 0;
+    let functionDefinitionLine = readOnlyCode.split("\n").length - 1; 
+    let closingLines = editor.lineCount() - 1; 
+
+    // Lock the `Card` class and function header
+    editor.markText({line: readOnlyStartLine, ch: 0}, {line: functionDefinitionLine + 1, ch: 0}, {
+        readOnly: true,
+        inclusiveLeft: true,
+        inclusiveRight: true
+    });
+
+    // Function to dynamically lock the last bracket
+    function updateClosingBracketLock() {
+        let totalLines = editor.lineCount();
+        let newclosingLines = totalLines - 1;
+
+        // Remove previous lock (if any)
+        editor.doc.getAllMarks().forEach(mark => {
+            let pos = mark.find();
+            if (pos && pos.from.line >= closingLines) {
+                mark.clear();
+            }
+        });
+
+        // Apply new lock to the last line
+        editor.markText({line: newclosingLines, ch: 0}, {line: newclosingLines + 1, ch: 0}, {
+            readOnly: true,
+            inclusiveLeft: true,
+            inclusiveRight: true
+        });
+
+        closingLines = newclosingLines;
+    }
+
+    // Update the closing bracket lock every time the user types
+    editor.on("change", function () {
+        updateClosingBracketLock();
+        localStorage.setItem("SinglePlayerPokerPlayerFunction", editor.getValue().replace(readOnlyCode, '').replace(readOnlyCodeEnd, ''));
+    });
+
+    // Prevent new lines from being added below the closing bracket
+    editor.on("beforeChange", function (instance, change) {
+        if (change.origin === "+input" && change.from.line >= closingLines) {
+            change.cancel();
+        }
+    });
+
+    // Initial lock
+    updateClosingBracketLock();
+
+    // Load username password
+    document.getElementById("username").value = localStorage.getItem("SinglePlayerPokerUsername") || "";
+    document.getElementById("password").value = localStorage.getItem("SinglePlayerPokerPassword") || "";
+
 };
+
+// Firebase
+
+// Your web app's Firebase configuration
+// For Firebase JS SDK v7.20.0 and later, measurementId is optional
+const firebaseConfig = {
+    apiKey: "AIzaSyCJB-N3w7PdEDaN-LsfuibyHeSVeRCPZCk",
+    authDomain: "single-player-poker.firebaseapp.com",
+    projectId: "single-player-poker",
+    storageBucket: "single-player-poker.firebasestorage.app",
+    messagingSenderId: "311267867448",
+    appId: "1:311267867448:web:4f844b1f8a02d7d02e9fcd",
+    measurementId: "G-G21G8K8G0P"
+};
+
+// Initialize Firebase
+firebase.initializeApp(firebaseConfig);
+const analytics = firebase.analytics();
+const db = firebase.firestore();
+
+async function submitToFirebase() {
+    const username = document.getElementById("username").value.trim();
+    const password = document.getElementById("password").value.trim();
+    const userFunction = localStorage.getItem("playerFunction");
+    const numSimulations = parseInt(document.getElementById("simulations").value) || 10000;
+    const winrate = document.getElementById("winrate").innerText;
+    const duration = document.getElementById("avgGameLength").innerText;
+
+    if (!username || !password) {
+        alert("Username and password are required!");
+        return;
+    }
+
+    localStorage.setItem("SinglePlayerPokerUsername", username);
+    localStorage.setItem("SinglePlayerPokerPassword", password);
+
+    const userRef = db.collection("unverified_submissions").doc(username.toLowerCase());
+    const userDoc = await userRef.get();
+    
+    if (userDoc.exists) {
+        const userData = userDoc.data();
+        if (userData.password !== password) {
+            alert("Incorrect password! Submission failed. If you are tying to create a new account, someone has taken that username already.");
+            return;
+        }
+    }
+
+    await userRef.set({
+        username,
+        password,  // NOT SECURE - only for basic verification
+        userFunction,
+        numSimulations,
+        winrate,
+        duration,
+        timestamp: firebase.firestore.FieldValue.serverTimestamp()
+    });
+
+    alert("Submission successful!");
+}
+
+function clearSavedCredentials() {
+    localStorage.removeItem("SinglePlayerPokerUsername");
+    localStorage.removeItem("SinglePlayerPokerPassword");
+    document.getElementById("username").value = "";
+    document.getElementById("password").value = "";
+    alert("Saved credentials cleared.");
+}
 
 // Card Game Constants
 const HEARTS = "hearts";
@@ -103,108 +272,6 @@ function compareHands(playerHand, dealerHand) {
     return 0; // **Tie**
 }
 
-window.onload = function () {
-    editor = CodeMirror.fromTextArea(document.getElementById("playerFunction"), {
-        mode: "javascript",
-        lineNumbers: true,
-        theme: "default"
-    });
-
-    // Read-only snippet of the Card class
-    let readOnlyCode = `// --- Card Class (Read-Only) ---
-class Card {
-    constructor(card, suit) {
-        this.suit = suit;
-        this.card = card;
-        this.isRed = (suit === "hearts" || suit === "diamonds");
-        this.isPicture = ["J", "Q", "K", "A"].includes(card);
-    }
-    getValue() {
-        if (["J", "Q", "K"].includes(this.card)) return 11 + ["J", "Q", "K"].indexOf(this.card);
-        if (this.card === "A") return 14;
-        return parseInt(this.card);
-    }
-}
-    
-// Your function goes below (Editable)
-function wantCard(myCards, dealerCards) {`;
-
-    // Editable area for player's function
-    let userFunctionTemplate = `
-    let wanted = [];
-
-    // Return an array of cards that you want to pick up
-    // 'DECK' is an array of all cards in a deck (excluding jokers)
-    // 'myCards' and 'dealerCards' are arrays of cards
-    // A basic strategy is implemented below as an example
-    
-    // Flush Rush™ by Rainier Wu (35% winrate)
-    if (myCards.length === 0) {
-        return DECK;
-    } else {
-        return DECK.filter(c => c.suit === myCards[0].suit);
-    }
-    return wanted;`;
-
-    // Read-only closing bracket
-    let readOnlyCodeEnd = `
-}`;
-
-    // Set editor content
-    let fullCode = readOnlyCode + userFunctionTemplate + readOnlyCodeEnd;
-    editor.setValue(fullCode);
-
-    // ** Lock Read-Only Sections Dynamically **
-    let readOnlyStartLine = 0;
-    let functionDefinitionLine = readOnlyCode.split("\n").length - 1; 
-    let closingLines = editor.lineCount() - 1; 
-
-    // Lock the `Card` class and function header
-    editor.markText({line: readOnlyStartLine, ch: 0}, {line: functionDefinitionLine + 1, ch: 0}, {
-        readOnly: true,
-        inclusiveLeft: true,
-        inclusiveRight: true
-    });
-
-    // Function to dynamically lock the last bracket
-    function updateClosingBracketLock() {
-        let totalLines = editor.lineCount();
-        let newclosingLines = totalLines - 1;
-
-        // Remove previous lock (if any)
-        editor.doc.getAllMarks().forEach(mark => {
-            let pos = mark.find();
-            if (pos && pos.from.line >= closingLines) {
-                mark.clear();
-            }
-        });
-
-        // Apply new lock to the last line
-        editor.markText({line: newclosingLines, ch: 0}, {line: newclosingLines + 1, ch: 0}, {
-            readOnly: true,
-            inclusiveLeft: true,
-            inclusiveRight: true
-        });
-
-        closingLines = newclosingLines;
-    }
-
-    // Update the closing bracket lock every time the user types
-    editor.on("change", function () {
-        updateClosingBracketLock();
-    });
-
-    // Prevent new lines from being added below the closing bracket
-    editor.on("beforeChange", function (instance, change) {
-        if (change.origin === "+input" && change.from.line >= closingLines) {
-            change.cancel();
-        }
-    });
-
-    // Initial lock
-    updateClosingBracketLock();
-};
-
 function shuffle(array) {
     let currentIndex = array.length;
   
@@ -223,13 +290,20 @@ function shuffle(array) {
     return array;
 }  
 
+function resetPlayerCode() {
+    if (confirm("Are you sure you want to reset your code? This cannot be undone.")) {
+        localStorage.removeItem("playerFunction");
+        location.reload();
+    }
+}
+
 // Start Simulation Function
 async function startSimulation() {
     let fullCode = editor.getValue();
     let functionStart = fullCode.indexOf("function wantCard(myCards, dealerCards) {") + "function wantCard(myCards, dealerCards) {".length;
     let functionEnd = fullCode.lastIndexOf("}");
     let userFunctionText = fullCode.substring(functionStart, functionEnd).trim();
-    let numSimulations = parseInt(document.getElementById("simulations").value) || 1000;
+    let numSimulations = parseInt(document.getElementById("simulations").value) || 10000;
 
     let win = 0, loss = 0, totalDealerCards = 0;
     let progressBar = document.getElementById("progressBar");
@@ -265,7 +339,7 @@ async function startSimulation() {
         progressBar.value = ((i + 1) / numSimulations) * 100;
         progressText.innerText = `Progress: ${(i + 1)}/${numSimulations} (${((win / (win + loss)) * 100).toFixed(2)}% winrate)`;
 
-        if(i % 1000 == 0) await new Promise(resolve => setTimeout(resolve, 1));
+        if(i % Number(document.getElementById("pageHang").value) == 0) await new Promise(resolve => setTimeout(resolve, 1));
     }
 
     document.getElementById("winrate").innerText = `Winrate: ${((win / (win + loss)) * 100).toFixed(2)}%`;

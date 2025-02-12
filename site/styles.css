@@ -9,7 +9,7 @@ body {
     width: 60%;
     margin: auto;
     background: white;
-    padding: 20px;
+    padding: 5%;
     border-radius: 10px;
     box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
     text-align: left;
@@ -35,5 +35,32 @@ progress {
 
 .results p {
     font-size: 18px;
+    font-weight: bold;
+}
+
+button {
+    background-color: #007BFF;
+    color: white;
+    border: none;
+    padding: 10px;
+    cursor: pointer;
+    border-radius: 5px;
+}
+
+button:hover {
+    background-color: #0056b3;
+}
+
+button:disabled {
+    background-color: #ccc;
+    cursor: not-allowed;
+}
+
+hr {
+    margin: 20px 0;
+}
+
+p#submissionStatus {
+    font-size: 16px;
     font-weight: bold;
 }
