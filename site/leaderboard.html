@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Leaderboard</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <nav>
+        <ul>
+            <li><a href="index.html">Home</a></li>
+            <li><a href="leaderboard.html">Leaderboard</a></li>
+        </ul>
+    </nav>
+    <h1>Single Player Poker – Leaderboard</h1>
+    <div class="leaderboard-container">
+        <h2>Verified Submissions</h2>
+        <table id="verified-scores">
+            <tr>
+                <th>Player</th>
+                <th>Winrate</th>
+                <th>Game Duration</th>
+                <th>Simulations</th>
+                <th>Uploaded On</th>
+            </tr>
+        </table>
+        <h2>All Scores</h2>
+        <table id="all-scores">
+            <tr>
+                <th>Player</th>
+                <th>Winrate</th>
+                <th>Game Duration</th>
+                <th>Simulations</th>
+                <th>Uploaded On</th>
+            </tr>
+        </table>
+    </div>
+    <script src="https://www.gstatic.com/firebasejs/11.3.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/11.3.1/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/11.3.1/firebase-analytics-compat.js"></script>
+    <script defer src="script.js"></script>
+</body>
+</html>

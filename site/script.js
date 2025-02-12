@@ -134,8 +134,13 @@ async function submitToFirebase() {
     const password = document.getElementById("password").value.trim();
     const userFunction = localStorage.getItem("playerFunction");
     const numSimulations = parseInt(document.getElementById("simulations").value) || 10000;
-    const winrate = document.getElementById("winrate").innerText;
-    const duration = document.getElementById("avgGameLength").innerText;
+    const winrate = Number(document.getElementById("winrate").innerText.replace('%', '').replace('Winrate: ', ''));
+    const duration = Number(document.getElementById("avgGameLength").innerText.replace('Avg Dealer Cards: ', ''));
+
+    if (winrate > 100) {
+        alert("Error!");
+        return;
+    }
 
     if (!username || !password) {
         alert("Username and password are required!");
@@ -168,6 +173,62 @@ async function submitToFirebase() {
 
     alert("Submission successful!");
 }
+
+function formatTimestamp(timestamp) {
+    if (timestamp && timestamp.seconds) {
+        let date = new Date(timestamp.seconds * 1000);
+        return date.toLocaleString();
+    }
+    return "N/A";
+}
+
+function fetchLeaderboard() {
+    const allScoresTable = document.getElementById("all-scores");
+    const verifiedScoresTable = document.getElementById("verified-scores");
+    
+    db.collection("unverified_submissions").orderBy("winrate", "desc").get().then(snapshot => {
+        snapshot.forEach(doc => {
+            let data = doc.data();
+            let row = `<tr><td>${data.username.replace('[[Official]]', '<span style="color: red;">[Official]</span>')}</td><td>${data.winrate}%</td><td>${data.duration}</td><td>${data.numSimulations}</td><td>${formatTimestamp(data.timestamp)}</td></tr>`;
+            allScoresTable.innerHTML += row;
+        });
+    });
+    
+    db.collection("verified_submissions").orderBy("winrate", "desc").get().then(snapshot => {
+        snapshot.forEach(doc => {
+            let data = doc.data();
+            let row = `<tr><td>${data.username.replace('[[Official]]', '<span style="color: red;">[Official]</span>')}</td><td>${data.winrate}%</td><td>${data.duration}</td><td>${data.numSimulations}</td><td>${formatTimestamp(data.timestamp)}</td></tr>`;
+            verifiedScoresTable.innerHTML += row;
+        });
+    });
+}
+
+async function verify(username) {
+    const sourceDocRef = db.collection("unverified_submissions").doc(username.toLowerCase());
+    const targetDocRef = db.collection("verified_submissions").doc(username.toLowerCase());
+
+    try {
+        const docSnapshot = await sourceDocRef.get();
+
+        if (docSnapshot.exists) {
+            const data = docSnapshot.data();
+            await targetDocRef.set(data); // Copy document data
+            console.log("Verified!");
+        } else {
+            console.warn("Player does not exist!");
+        }
+    } catch (error) {
+        console.error("Verification failed:", error);
+    }
+}
+
+// Call function if on leaderboard page
+document.addEventListener("DOMContentLoaded", () => {
+    if (document.getElementById("all-scores")) {
+        fetchLeaderboard();
+    }
+});
+
 
 function clearSavedCredentials() {
     localStorage.removeItem("SinglePlayerPokerUsername");
